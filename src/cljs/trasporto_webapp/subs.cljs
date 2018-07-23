@@ -38,3 +38,8 @@
            includef #(-> % :Description s/lower-case (s/includes? lc-query))]
        (filter includef stops))
      (get-in db [:line-stops :Stops]))))
+
+(rf/reg-sub
+ ::stop
+ (fn [db]
+   (:stop db)))

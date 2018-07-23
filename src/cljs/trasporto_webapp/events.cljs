@@ -35,6 +35,19 @@
    (println "fail" fail)
    {:dispatch [::loading false]}))
 
+(rf/reg-event-fx
+ ::process-stop-response
+ (fn [{:keys [db]} [_ stop]]
+   (println stop)
+   {:db (assoc db :stop stop)
+    :dispatch [::loading false]}))
+
+(rf/reg-event-fx
+ ::failed-stop
+ (fn [{:keys [db]} [_ fail]]
+   (println "fail" fail)
+   {:dispatch [::loading false]}))
+
 (rf/reg-event-db
  ::loading
  (fn [db [_ loading]] 
@@ -79,4 +92,20 @@
                  :on-success [::process-stops-response]
                  :on-failure [::failed-stops]
                  } 
+    }))
+
+(rf/reg-event-fx
+ ::stop-click
+ (fn [{:keys [db]} [_ stop]]
+   {:dispatch [::loading true]
+    :http-xhrio {:method :get
+                 :uri (str "http://localhost:3000/stop/" (:Code stop))
+                 :timeout 5000
+                 :headers {
+                           "Access-Control-Allow-Origin" "http://localhost:3000"
+                           }
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :on-success [::process-stop-response]
+                 :on-failure [::failed-stop]
+                 }
     }))

@@ -4,12 +4,13 @@
    [trasporto-webapp.subs :as subs]
    [trasporto-webapp.events :as events]
    [day8.re-frame.http-fx]
+   [clojure.string :as s]
    ))
 
 (defn on-input-change [input]
   (let [lines @(rf/subscribe [::subs/lines])
         query @(rf/subscribe [::subs/query])]
-    (println "lines" lines)
+    ;;(println "lines" lines)
     (if (seq lines)
       (rf/dispatch [::events/query-change (-> input .-target .-value)])
       (do (rf/dispatch [::events/query-change (-> input .-target .-value)])
@@ -39,13 +40,13 @@
 
 (defn loading-view []
   (let [loading? (rf/subscribe [::subs/loading?])]
-    (println @loading?)
+    ;;(println @loading?)
     (if @loading? [:div "Carico..."] nil)))
 
 (defn line-view [line]
   [:li {:key (:Id line)}
    [:a 
-    {:href "#" :on-click #(on-line-click line)}
+    {:href (str "#" (:Id line)) :on-click #(on-line-click line)}
     (get-in line [:Line :LineDescription])]])
 
 (defn lines-view []
@@ -57,7 +58,7 @@
 (defn stop-view [stop]
   [:li {:key (:Code stop)}
    [:a
-    {:href "#" :on-click #(on-stop-click stop)}
+    {:href (str "#" (:Code stop)) :on-click #(on-stop-click stop)}
     (:Description stop)]])
 
 (defn stops-view []
@@ -65,6 +66,29 @@
         stops @(rf/subscribe [::subs/stops query])]
     [:ul
      (for [s stops] (stop-view s))]))
+
+(defn get-wait-message [wait-message]
+  (if (= "in arrivo" wait-message)
+    "ADESSO CAZZO!"
+    (let [[min _] (s/split wait-message #" ")
+          msg (str "Tra " min " min.")]
+      (if (>= (js/parseInt min) 10)
+        (str msg " Sei fottuto.")
+        msg))
+    ))
+
+(defn wait-message-view []
+  (let [stop @(rf/subscribe [::subs/stop])
+        {:keys [Id]} @(rf/subscribe [::subs/line-stops])
+        line-stop (first (filter #(= (:JourneyPatternId %) Id) (:Lines stop)))]
+    ;;(println "lines @ stop" (:JourneyPatternId (second (:Lines stop))) "line" Id)
+    [:span
+     [:h2
+      (if line-stop
+        (get-wait-message (:WaitMessage line-stop))
+        "Figa non ci sto capendo un cazzo...")
+      ]
+     "[Aggiorna]"]))
 
 (defn get-article [line]
   (case (:TrasportMode line)
@@ -74,17 +98,21 @@
     "la"))
 
 (defn main-panel []
-  (let [{:keys [Line] :as line-stops} @(rf/subscribe [::subs/line-stops])]
+  (let [{:keys [Line] :as line-stops} @(rf/subscribe [::subs/line-stops])
+        stop @(rf/subscribe [::subs/stop])]
     [:div
      [:h1 (if (empty? line-stops)
             "Quando cazzo arriva?"
-            (str "Quando cazzo arriva " (get-article Line) " " (:LineCode Line) "?"))]
-     [:div
-      (if (empty? line-stops)
-        (input)
-        (stops-query-input))
-      (loading-view)
-      (if (empty? line-stops)
-        (lines-view)
-        (stops-view))
-      ]]))
+            (if-not stop
+              (str "Quando cazzo arriva " (get-article Line) " " (:LineCode Line) "?")
+              (str "Quando cazzo arriva " (get-article Line) " " (:LineCode Line) " a " (:Description stop) "?")))]
+     (if stop
+       [:div (wait-message-view)]
+       [:div (if (empty? line-stops)
+               (input)
+               (stops-query-input))
+        (loading-view)
+        (if (empty? line-stops)
+          (lines-view)
+          (stops-view))])
+     ]))

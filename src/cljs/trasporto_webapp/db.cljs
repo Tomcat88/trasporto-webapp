@@ -5,4 +5,5 @@
    :stops-query nil
    :lines []
    :line-stops {}
+   :stop nil
    :loading? false})
