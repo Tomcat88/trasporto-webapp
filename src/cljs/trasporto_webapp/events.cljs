@@ -99,7 +99,7 @@
  (fn [{:keys [db]} [_ stop]]
    {:dispatch [::loading true]
     :http-xhrio {:method :get
-                 :uri (str "http://localhost:3000/stop/" (:Code stop))
+                 :uri (str "http://localhost:3000/stop/" stop)
                  :timeout 5000
                  :headers {
                            "Access-Control-Allow-Origin" "http://localhost:3000"
@@ -109,3 +109,8 @@
                  :on-failure [::failed-stop]
                  }
     }))
+
+(rf/reg-event-db
+ ::back-click
+ (fn [db [_ step]]
+   (dissoc db step)))

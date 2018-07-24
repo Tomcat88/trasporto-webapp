@@ -26,17 +26,26 @@
 (defn on-stop-click [stop]
   (rf/dispatch [::events/stop-click stop]))
 
+(defn on-back-click [step]
+  (rf/dispatch [::events/back-click step]))
+
 (defn input []
   (let [value (rf/subscribe [::subs/query])]
     [:input {:type "text"
              :value @value
              :on-change #(on-input-change %)}]))
 
+(defn back-view [step]
+  [:a {:style {:margin-left "10px"} :href "#back" :on-click #(on-back-click step)} "[Indietro]"])
+
 (defn stops-query-input []
   (let [value (rf/subscribe [::subs/stops-query])]
-    [:input {:type "text"
-             :value @value
-             :on-change #(on-stops-query-change %)}]))
+    [:span
+     [:input {:type "text"
+              :value @value
+              :on-change #(on-stops-query-change %)}]
+     (back-view :line-stops)
+     ]))
 
 (defn loading-view []
   (let [loading? (rf/subscribe [::subs/loading?])]
@@ -56,10 +65,11 @@
      (for [l @lines] (line-view l))]))
 
 (defn stop-view [stop]
-  [:li {:key (:Code stop)}
-   [:a
-    {:href (str "#" (:Code stop)) :on-click #(on-stop-click stop)}
-    (:Description stop)]])
+  (let [code (:Code stop)]
+    [:li {:key code}
+     [:a
+      {:href (str "#" code) :on-click #(on-stop-click code)}
+      (:Description stop)]]))
 
 (defn stops-view []
   (let [query @(rf/subscribe [::subs/stops-query])
@@ -80,15 +90,17 @@
 (defn wait-message-view []
   (let [stop @(rf/subscribe [::subs/stop])
         {:keys [Id]} @(rf/subscribe [::subs/line-stops])
-        line-stop (first (filter #(= (:JourneyPatternId %) Id) (:Lines stop)))]
+        line-stop (first (filter #(= (:JourneyPatternId %) Id) (:Lines stop)))
+        loading? @(rf/subscribe [::subs/loading?])]
     ;;(println "lines @ stop" (:JourneyPatternId (second (:Lines stop))) "line" Id)
     [:span
      [:h2
       (if line-stop
-        (get-wait-message (:WaitMessage line-stop))
+        (if loading? "Mmm..." (get-wait-message (:WaitMessage line-stop)))
         "Figa non ci sto capendo un cazzo...")
       ]
-     "[Aggiorna]"]))
+     [:a {:href "#update" :on-click #(on-stop-click (:CustomerCode stop))} "[Aggiorna]"]
+     (back-view :stop)])) ;; CustomerCode seems a mistake in the api response
 
 (defn get-article [line]
   (case (:TrasportMode line)
@@ -108,9 +120,10 @@
               (str "Quando cazzo arriva " (get-article Line) " " (:LineCode Line) " a " (:Description stop) "?")))]
      (if stop
        [:div (wait-message-view)]
-       [:div (if (empty? line-stops)
-               (input)
-               (stops-query-input))
+       [:div
+        (if (empty? line-stops)
+          (input)
+          (stops-query-input))
         (loading-view)
         (if (empty? line-stops)
           (lines-view)
