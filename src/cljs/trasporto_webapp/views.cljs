@@ -78,14 +78,25 @@
      (for [s stops] (stop-view s))]))
 
 (defn get-wait-message [wait-message]
-  (if (= "in arrivo" wait-message)
-    "ADESSO CAZZO!"
+  (case wait-message
+    "in arrivo" "ADESSO CAZZO!"
+    "ricalcolo" "Mmm... 'spe che ricalcolo"
+    "no serv."  "Ci vediamo domani mattina..."
+    nil         "Prima o poi..."
     (let [[min _] (s/split wait-message #" ")
           msg (str "Tra " min " min.")]
       (if (>= (js/parseInt min) 10)
         (str msg " Sei fottuto.")
         msg))
     ))
+
+(defn get-other-lines-messages [other-lines]
+  (for [l other-lines]
+    [:ul
+     [:li
+      [:span (str (get-in l [:Line :LineCode]) " - " (get-in l [:Line :LineDescription]) ": ")]
+      [:b (get-wait-message (:WaitMessage l))]
+      ]]))
 
 (defn wait-message-view []
   (let [stop @(rf/subscribe [::subs/stop])
@@ -99,6 +110,7 @@
         (if loading? "Mmm..." (get-wait-message (:WaitMessage line-stop)))
         "Figa non ci sto capendo un cazzo...")
       ]
+     (if-not loading? (get-other-lines-messages (filter #(not= (:JourneyPatternId %) Id) (:Lines stop))))
      [:a {:href "#update" :on-click #(on-stop-click (:CustomerCode stop))} "[Aggiorna]"]
      (back-view :stop)])) ;; CustomerCode seems a mistake in the api response
 
