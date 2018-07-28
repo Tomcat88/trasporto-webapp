@@ -79,10 +79,10 @@
 
 (defn get-wait-message [wait-message]
   (case wait-message
-    "in arrivo" "ADESSO CAZZO!"
+    "in arrivo" "In arrivo!"
     "ricalcolo" "Mmm... 'spe che ricalcolo"
     "no serv."  "Ci vediamo domani mattina..."
-    nil         "Prima o poi..."
+    nil         "Prima o poi..." ;; should not happen
     (let [[min _] (s/split wait-message #" ")
           msg (str "Tra " min " min.")]
       (if (>= (js/parseInt min) 10)
@@ -91,12 +91,13 @@
     ))
 
 (defn get-other-lines-messages [other-lines]
-  (for [l other-lines]
-    [:ul
-     [:li
-      [:span (str (get-in l [:Line :LineCode]) " - " (get-in l [:Line :LineDescription]) ": ")]
-      [:b (get-wait-message (:WaitMessage l))]
-      ]]))
+  [:div
+   [:span "Altre linee:"]
+   [:ul (for [l (filter #(-> % :WaitMessage some?) other-lines)]
+          [:li {:key (get-in l [:Line :LineCode])}
+           [:span (str (get-in l [:Line :LineCode]) " - " (get-in l [:Line :LineDescription]) ": ")]
+           [:b (get-wait-message (:WaitMessage l))]
+           ])]])
 
 (defn wait-message-view []
   (let [stop @(rf/subscribe [::subs/stop])
