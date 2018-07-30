@@ -43,3 +43,28 @@
  ::stop
  (fn [db]
    (:stop db)))
+
+(rf/reg-sub
+ ::timetable
+ (fn [db]
+   (:timetable db)))
+
+(rf/reg-sub
+ ::dow
+ (fn [db]
+   (:dow db)))
+
+(rf/reg-sub
+ ::hour
+ (fn [db]
+   (:hour db)))
+
+(rf/reg-sub
+ ::sub-view
+ (fn [db]
+   (:sub-view db)))
+
+(rf/reg-sub
+ ::line-stop
+ (fn [{:keys [stop line-stops]} db] 
+   (first (filter #(= (:JourneyPatternId %) (:Id line-stops)) (:Lines stop)))))
