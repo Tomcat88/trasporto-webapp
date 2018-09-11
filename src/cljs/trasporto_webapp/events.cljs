@@ -4,13 +4,23 @@
    [trasporto-webapp.db :as db]
    [ajax.core :as ajax]))
 
+(goog-define api-url "http://localhost:3000")
+
+(def cors-header {"Access-Control-Allow-Origin" api-url})
+
+(defn lines-url      []                    (str api-url "/lines"))
+(defn lines-stop-url [line direction]      (str api-url "/line/" line "/stops?direction=" line))
+(defn stop-url       [stop]                (str api-url "/stop/" stop))
+(defn timetable-url  [line stop direction] (str api-url
+                                                "/line/" line
+                                                "/stop/" stop
+                                                "/timetable?direction=" direction))
+
 (defn get-http-call-map [uri on-success on-failure]
   {:method :get
    :uri uri
    :timeout 5000
-   :headers {
-             "Access-Control-Allow-Origin" "http://localhost:3000"
-             }
+   :headers cors-header
    :response-format (ajax/json-response-format {:keywords? true})
    :on-success [on-success]
    :on-failure [on-failure] })
@@ -23,7 +33,7 @@
 (rf/reg-event-fx
  ::process-lines-response
  (fn [{:keys [db]} [_ {:keys [JourneyPatterns]}]]
-   (println JourneyPatterns)
+   ;; (println JourneyPatterns)
    {:db (assoc db :lines JourneyPatterns)
     :dispatch [::loading false]}))
 
@@ -36,7 +46,7 @@
 (rf/reg-event-fx
  ::process-stops-response
  (fn [{:keys [db]} [_ stops]]
-   (println stops)
+   ;; (println stops)
    {:db (assoc db :line-stops stops)
     :dispatch [::loading false]}))
 
@@ -49,7 +59,7 @@
 (rf/reg-event-fx
  ::process-stop-response
  (fn [{:keys [db]} [_ stop]]
-   (println stop)
+   ;; (println stop)
    {:db (assoc db :stop stop)
     :dispatch [::loading false]}))
 
@@ -62,7 +72,7 @@
 (rf/reg-event-fx
  ::process-timetable-response
  (fn [{:keys [db]} [_ timetable]]
-   (println "tt" timetable)
+   ;; (println "tt" timetable)
    {:dispatch [::loading false]
     :db (assoc db :timetable timetable)}))
 
@@ -81,16 +91,11 @@
  ::load-lines
  (fn [{:keys [db]} [_ _]]
    {:dispatch [::loading true]
-    :http-xhrio {:method :get
-                 :uri "http://localhost:3000/lines"
-                 :headers {
-                           "Access-Control-Allow-Origin" "http://localhost:3000" 
-                           }
-                 :timeout 5000
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [::process-lines-response]
-                 :on-failure [::failed-lines]
-                 }}))
+    :http-xhrio (get-http-call-map
+                 (lines-url)
+                 ::process-lines-response
+                 ::failed-lines
+                 )}))
 
 (rf/reg-event-db
  ::query-change
@@ -106,32 +111,20 @@
  ::line-click
  (fn [{:keys [db]} [_ line]]
    {:dispatch [::loading true]
-    :http-xhrio {:method :get
-                 :uri (str "http://localhost:3000/line/" (:Code line) "/stops?direction=" (:Direction line))
-                 :timeout 5000
-                 :headers {
-                           "Access-Control-Allow-Origin" "http://localhost:3000" 
-                           }
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [::process-stops-response]
-                 :on-failure [::failed-stops]
-                 } 
+    :http-xhrio (get-http-call-map
+                 (lines-stop-url (:Code line) (:Direction line))
+                 ::process-stops-response
+                 ::failed-stops) 
     }))
 
 (rf/reg-event-fx
  ::stop-click
  (fn [{:keys [db]} [_ stop]]
    {:dispatch [::loading true]
-    :http-xhrio {:method :get
-                 :uri (str "http://localhost:3000/stop/" stop)
-                 :timeout 5000
-                 :headers {
-                           "Access-Control-Allow-Origin" "http://localhost:3000"
-                           }
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [::process-stop-response]
-                 :on-failure [::failed-stop]
-                 }
+    :http-xhrio (get-http-call-map
+                 (stop-url stop)
+                 ::process-stop-response
+                 ::failed-stop) 
     }))
 
 (rf/reg-event-db
@@ -150,9 +143,7 @@
    (println "stop" stop "line" line)
    {:dispatch-n [[::sub-view :timetable] [::loading true]]
     :http-xhrio (get-http-call-map
-                 (str "http://localhost:3000/line/" line
-                      "/stop/" stop
-                      "/timetable?direction=" direction)
+                 (timetable-url line stop direction)
                  ::process-timetable-response
                  ::failed-timetable)}))
 

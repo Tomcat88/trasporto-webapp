@@ -38,6 +38,7 @@
                     :output-dir           "resources/public/js/compiled/out"
                     :asset-path           "js/compiled/out"
                     :source-map-timestamp true
+                    :closure-defines      {trasporto-webapp.events/api-url "http://localhost:3000"}
                     :preloads             [devtools.preload]
                     :external-config      {:devtools/config {:features-to-install :all}}
                     }}
@@ -47,6 +48,7 @@
      :compiler     {:main            trasporto-webapp.core
                     :output-to       "resources/public/js/compiled/app.js"
                     :optimizations   :advanced
-                    :closure-defines {goog.DEBUG false}
+                    :closure-defines {goog.DEBUG false
+                                      trasporto-webapp.events/api-url "http://api.thomasi.it/trasporto" }
                     :pretty-print    false}}
     ]})
