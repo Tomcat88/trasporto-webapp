@@ -9,7 +9,7 @@
 (def cors-header {"Access-Control-Allow-Origin" api-url})
 
 (defn lines-url      []                    (str api-url "/lines"))
-(defn lines-stop-url [line direction]      (str api-url "/line/" line "/stops?direction=" line))
+(defn lines-stop-url [line direction]      (str api-url "/line/" line "/stops?direction=" direction))
 (defn stop-url       [stop]                (str api-url "/stop/" stop))
 (defn timetable-url  [line stop direction] (str api-url
                                                 "/line/" line
